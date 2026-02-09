@@ -1,0 +1,27 @@
+---
+# ====================================================
+# Cloud-1 メインPlaybook
+# このファイル1つで全デプロイが完了する
+# 実行: ansible-playbook playbook.yml
+# ====================================================
+
+- name: Cloud-1 Inception デプロイ
+  hosts: cloud1 # inventory.ini の [cloud1] グループに対して実行
+  become: yes # sudo権限で実行
+  vars_files:
+    - vars/secrets.yml # 秘密情報を読み込み
+
+  roles:
+    - common # Step 1: Docker/Git等のインストール
+    - inception # Step 2: Inceptionのデプロイ
+
+  post_tasks:
+    - name: デプロイ完了メッセージ
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          ✅ デプロイ完了!
+          WordPress: https://{{ ansible_host }}
+          phpMyAdmin: https://{{ ansible_host }}/phpmyadmin/
+          SSH: ssh -i ~/.ssh/cloud1-key ubuntu@{{ ansible_host }}
+          ========================================

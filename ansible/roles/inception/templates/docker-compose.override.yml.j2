@@ -1,0 +1,46 @@
+# docker-compose.override.yml
+# 元の docker-compose.yml を変更せずに、差分だけ適用する仕組み
+# Docker Compose は同じディレクトリの override ファイルを自動的にマージする
+
+services:
+  # --- phpMyAdmin の追加（subject要件） ---
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: inception_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - inception_network
+    # ポートは公開せず、Nginx経由でアクセスさせることも可能
+    # 簡易的にポート公開する場合は以下を有効化:
+    ports:
+      - "8080:80"
+
+# ボリュームのパスをクラウドVM用に上書き
+volumes:
+  db_data:
+    name: db_data
+    driver: local
+    driver_opts:
+      device: /home/ubuntu/data/db_data
+      o: bind
+      type: none
+  ssl_secrets:
+    name: ssl_secrets
+    driver: local
+    driver_opts:
+      device: /home/ubuntu/data/ssl_secrets
+      o: bind
+      type: none
+  wp_data:
+    name: wp_data
+    driver: local
+    driver_opts:
+      device: /home/ubuntu/data/wp_data
+      o: bind
+      type: none

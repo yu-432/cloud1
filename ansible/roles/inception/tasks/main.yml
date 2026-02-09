@@ -1,0 +1,100 @@
+---
+# ====================================================
+# inception ロール: リポジトリクローン → 設定変更 → コンテナ起動
+# ====================================================
+
+# --- リポジトリのクローン ---
+- name: Inception リポジトリをクローン
+  ansible.builtin.git:
+    repo: "https://github.com/yu-432/inception.git"
+    dest: /home/ubuntu/inception
+    version: main
+    force: yes
+  become_user: ubuntu
+
+# --- docker-compose.override.yml の配置 ---
+# 元の docker-compose.yml を変更せず、override で差分を適用する
+# - ボリュームのパスを /home/ubuntu/data/ に変更
+# - phpMyAdmin サービスを追加
+- name: docker-compose.override.yml を配置
+  ansible.builtin.template:
+    src: docker-compose.override.yml.j2
+    dest: /home/ubuntu/inception/srcs/docker-compose.override.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+# --- シークレットファイルの作成 ---
+# Docker secrets 用のパスワードファイルを生成
+- name: secrets ディレクトリを作成
+  ansible.builtin.file:
+    path: /home/ubuntu/inception/srcs/secrets
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0700"
+
+- name: シークレットファイルを作成
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "/home/ubuntu/inception/srcs/secrets/{{ item.name }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  loop:
+    - { name: "mysql_password", content: "{{ mysql_password }}" }
+    - { name: "mysql_root_password", content: "{{ mysql_root_password }}" }
+    - { name: "wordpress_db_password", content: "{{ wordpress_db_password }}" }
+    - {
+        name: "wordpress_admin_password",
+        content: "{{ wordpress_admin_password }}",
+      }
+    - {
+        name: "wordpress_editor_password",
+        content: "{{ wordpress_editor_password }}",
+      }
+  no_log: true # パスワードがログに表示されないようにする
+
+# --- 自己署名TLS証明書の生成 ---
+- name: OpenSSL で自己署名証明書を生成
+  ansible.builtin.shell: |
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout /home/ubuntu/data/ssl_secrets/nginx.key \
+      -out /home/ubuntu/data/ssl_secrets/nginx.crt \
+      -subj "/C=JP/ST=Tokyo/L=Tokyo/O=42Tokyo/CN={{ server_name }}"
+  args:
+    creates: /home/ubuntu/data/ssl_secrets/nginx.crt # 既に存在すればスキップ
+
+- name: SSL証明書のパーミッションを設定
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  loop:
+    - /home/ubuntu/data/ssl_secrets/nginx.key
+    - /home/ubuntu/data/ssl_secrets/nginx.crt
+
+# --- Docker イメージのビルドとコンテナ起動 ---
+# Inception の Makefile を使用
+# sg: グループコンテキストでコマンド実行（docker グループ権限を有効化）
+- name: Makefile でコンテナをビルド＆起動
+  ansible.builtin.shell: |
+    cd /home/ubuntu/inception && \
+    sg docker -c "make"
+  become_user: ubuntu
+  environment:
+    # Docker daemon にアクセス可能にするため、ホームディレクトリを設定
+    HOME: /home/ubuntu
+
+# --- コンテナの起動確認 ---
+- name: コンテナの状態を確認
+  ansible.builtin.shell: sg docker -c "docker ps --format 'table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}'"
+  register: docker_status
+  become_user: ubuntu
+  environment:
+    HOME: /home/ubuntu
+
+- name: コンテナ状態を表示
+  ansible.builtin.debug:
+    var: docker_status.stdout_lines
