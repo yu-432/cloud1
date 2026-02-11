@@ -97,6 +97,14 @@ resource "aws_instance" "cloud1" {
   key_name               = aws_key_pair.cloud1.key_name
   vpc_security_group_ids = [aws_security_group.cloud1_sg.id]
 
+  # スポットインスタンスとして起動（コスト削減）
+  instance_market_options {
+    market_type = "spot"
+    spot_options {
+      spot_instance_type = "one-time"
+    }
+  }
+
   # ルートボリューム（メインのディスク）
   root_block_device {
     volume_size = 20    # 20GB（Docker イメージ + データ用に余裕を持たせる）

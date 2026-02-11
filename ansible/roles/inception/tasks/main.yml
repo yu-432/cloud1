@@ -24,6 +24,16 @@
     group: ubuntu
     mode: "0644"
 
+# --- .env ファイルの配置 ---
+# 非機密情報のみ（パスワードは Docker secrets で管理）
+- name: .env ファイルを配置
+  ansible.builtin.template:
+    src: .env.j2
+    dest: /home/ubuntu/inception/srcs/.env
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
 # --- シークレットファイルの作成 ---
 # Docker secrets 用のパスワードファイルを生成
 - name: secrets ディレクトリを作成
@@ -76,15 +86,15 @@
     - /home/ubuntu/data/ssl_secrets/nginx.crt
 
 # --- Docker イメージのビルドとコンテナ起動 ---
-# Inception の Makefile を使用
+# make を使わず docker compose を直接実行する
+# （make の all ターゲットは setup.sh を実行し、シークレットファイルをサンプル値で上書きするため）
 # sg: グループコンテキストでコマンド実行（docker グループ権限を有効化）
-- name: Makefile でコンテナをビルド＆起動
+- name: コンテナをビルド＆起動
   ansible.builtin.shell: |
-    cd /home/ubuntu/inception && \
-    sg docker -c "make"
+    cd /home/ubuntu/inception/srcs && \
+    sg docker -c "docker compose up -d --build"
   become_user: ubuntu
   environment:
-    # Docker daemon にアクセス可能にするため、ホームディレクトリを設定
     HOME: /home/ubuntu
 
 # --- コンテナの起動確認 ---
