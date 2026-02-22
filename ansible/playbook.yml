@@ -23,5 +23,5 @@
           ✅ デプロイ完了!
           WordPress: https://{{ ansible_host }}
           phpMyAdmin: https://{{ ansible_host }}/phpmyadmin/
-          SSH: ssh -i ~/.ssh/cloud1-key ubuntu@{{ ansible_host }}
+          SSH: ssh -i ~/.ssh/cloud1/id_rsa_cloud1 ubuntu@{{ ansible_host }}
           ========================================
