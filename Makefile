@@ -1,4 +1,3 @@
-SHELL := /bin/bash
 .PHONY: all deploy infra wait provision destroy ssh ssm plan status help
 
 TF_DIR  := terraform
