@@ -1,4 +1,4 @@
-.PHONY: all deploy infra wait provision destroy ssh ssm plan status help
+.PHONY: all setup deploy infra wait provision destroy ssh ssm plan status help
 
 TF_DIR  := terraform
 ANS_DIR := ansible
@@ -7,6 +7,18 @@ ANS_DIR := ansible
 # デフォルト: ヘルプ表示
 # -----------------------------------------------
 all: help
+
+# -----------------------------------------------
+# セットアップ: 初回利用時に secrets.yml を作成
+# -----------------------------------------------
+setup:  ## 初回セットアップ (secrets.yml.example → secrets.yml をコピー)
+	@if [ -f $(ANS_DIR)/vars/secrets.yml ]; then \
+	  echo "✅ $(ANS_DIR)/vars/secrets.yml は既に存在します"; \
+	else \
+	  cp $(ANS_DIR)/vars/secrets.yml.example $(ANS_DIR)/vars/secrets.yml; \
+	  echo "✅ $(ANS_DIR)/vars/secrets.yml を作成しました"; \
+	  echo "⚠️  パスワードなどを編集してください: $(ANS_DIR)/vars/secrets.yml"; \
+	fi
 
 # -----------------------------------------------
 # フルデプロイ: 3フェーズを順番に実行
