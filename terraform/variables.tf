@@ -10,8 +10,3 @@ variable "instance_type" {
   default     = "t3.micro"  # 無料枠対象（東京リージョン対応）
 }
 
-variable "ssh_public_key_path" {
-  description = "EC2に登録するSSH公開鍵のパス"
-  type        = string
-  default     = "~/.ssh/cloud1/id_rsa_cloud1.pub"
-}

@@ -13,7 +13,7 @@ output "ssm_command" {
   value       = "aws ssm start-session --target ${aws_instance.cloud1.id}"
 }
 
-output "ssm_ssh_command" {
-  description = "SSMトンネル経由SSH接続コマンド"
-  value       = "ssh -i ~/.ssh/cloud1/id_rsa_cloud1 -o ProxyCommand='aws ssm start-session --target ${aws_instance.cloud1.id} --document-name AWS-StartSSHSession --parameters portNumber=%p' ubuntu@${aws_instance.cloud1.id}"
+output "ssm_bucket_name" {
+  description = "Ansible SSMファイル転送用S3バケット"
+  value       = aws_s3_bucket.ssm_bucket.bucket
 }

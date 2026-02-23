@@ -11,15 +11,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# -----------------------------------------------
-# SSH鍵ペア
-# ローカルで作った公開鍵をAWSに登録する
-# SSMトンネル経由のSSH認証に使用
-# -----------------------------------------------
-resource "aws_key_pair" "cloud1" {
-  key_name   = "cloud1-key"
-  public_key = file(pathexpand(var.ssh_public_key_path))
-}
 
 # -----------------------------------------------
 # IAMロール・インスタンスプロファイル（SSM用）
@@ -54,6 +45,41 @@ resource "aws_iam_role_policy_attachment" "cloud1_ssm" {
 resource "aws_iam_instance_profile" "cloud1_ssm" {
   name = "cloud1-ssm-profile"
   role = aws_iam_role.cloud1_ssm.name
+}
+
+# -----------------------------------------------
+# AnsibleがSSM経由でファイルを転送（24KB以上）するためのS3バケット
+# amazon.aws.aws_ssmプラグインの必須要件
+# -----------------------------------------------
+resource "aws_s3_bucket" "ssm_bucket" {
+  bucket_prefix = "cloud1-ssm-ansible-"
+  force_destroy = true # インフラ破棄時にバケット内にファイルがあっても削除する
+}
+
+resource "aws_iam_role_policy" "cloud1_ssm_s3" {
+  name = "cloud1-ssm-s3-policy"
+  role = aws_iam_role.cloud1_ssm.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetEncryptionConfiguration",
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = [
+          aws_s3_bucket.ssm_bucket.arn,
+          "${aws_s3_bucket.ssm_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
 }
 
 # -----------------------------------------------
@@ -122,7 +148,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "cloud1" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  key_name               = aws_key_pair.cloud1.key_name
+
   vpc_security_group_ids = [aws_security_group.cloud1_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.cloud1_ssm.name
 

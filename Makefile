@@ -3,7 +3,6 @@ SHELL := /bin/bash
 
 TF_DIR  := terraform
 ANS_DIR := ansible
-SSH_KEY := ~/.ssh/cloud1/id_rsa_cloud1
 
 # -----------------------------------------------
 # デフォルト: ヘルプ表示
@@ -57,10 +56,11 @@ provision:  ## Ansibleでデプロイ (inventory自動生成 + ansible-playbook)
 	@echo "===== Phase 3: Ansible デプロイ ====="
 	@EC2_IP=$$(cd $(TF_DIR) && terraform output -raw instance_public_ip); \
 	INSTANCE_ID=$$(cd $(TF_DIR) && terraform output -raw instance_id); \
-	printf '[cloud1]\n%s ansible_ssh_private_key_file=$(SSH_KEY)\n\n[cloud1:vars]\nansible_user=ubuntu\nansible_python_interpreter=/usr/bin/python3\n' \
-	  "$$INSTANCE_ID" > $(ANS_DIR)/inventory.ini; \
-	echo "  inventory.ini 生成完了 (host: $$INSTANCE_ID)"; \
-	cd $(ANS_DIR) && ansible-playbook playbook.yml --extra-vars "ec2_public_ip=$$EC2_IP"
+	SSM_BUCKET=$$(cd $(TF_DIR) && terraform output -raw ssm_bucket_name); \
+	printf '[cloud1]\n%s ansible_connection=aws_ssm ansible_aws_ssm_region=ap-northeast-1 ansible_aws_ssm_bucket_name=%s\n\n[cloud1:vars]\nansible_python_interpreter=/usr/bin/python3\n' \
+	  "$$INSTANCE_ID" "$$SSM_BUCKET" > $(ANS_DIR)/inventory.ini; \
+	echo "  inventory.ini 生成完了 (host: $$INSTANCE_ID, bucket: $$SSM_BUCKET)"; \
+	cd $(ANS_DIR) && ansible-galaxy collection install community.aws && OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES ansible-playbook playbook.yml --extra-vars "ec2_public_ip=$$EC2_IP"
 
 # -----------------------------------------------
 # インフラ破棄（確認プロンプトあり）
@@ -76,15 +76,8 @@ destroy:  ## AWSインフラを破棄 (terraform destroy)
 # -----------------------------------------------
 # 接続コマンド
 # -----------------------------------------------
-ssh:  ## SSMトンネル経由でSSH接続
-	@INSTANCE_ID=$$(cd $(TF_DIR) && terraform output -raw instance_id); \
-	echo "接続先: $$INSTANCE_ID"; \
-	ssh -i $(SSH_KEY) \
-	  -o StrictHostKeyChecking=no \
-	  -o "ProxyCommand=aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p" \
-	  ubuntu@"$$INSTANCE_ID"
 
-ssm:  ## SSMセッションで直接接続 (SSH鍵不要)
+ssm:  ## SSMセッションで直接接続
 	@INSTANCE_ID=$$(cd $(TF_DIR) && terraform output -raw instance_id); \
 	echo "接続先: $$INSTANCE_ID"; \
 	aws ssm start-session --target "$$INSTANCE_ID"
@@ -122,5 +115,5 @@ help:  ## 利用可能なコマンド一覧を表示
 	@echo "  make deploy       # インフラ構築からWordPressデプロイまで一括実行"
 	@echo "  make infra        # Terraformだけ実行（Ansibleはまだ）"
 	@echo "  make provision    # Ansibleだけ再実行（インフラは既にある前提）"
-	@echo "  make ssh          # デプロイ済みサーバーにSSH接続"
+	@echo "  make ssm          # デプロイ済みサーバーにSSM接続"
 	@echo "  make destroy      # 課金を止める"
