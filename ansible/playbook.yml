@@ -21,7 +21,7 @@
         msg: |
           ========================================
           ✅ デプロイ完了!
-          WordPress: https://{{ ansible_host }}
-          phpMyAdmin: https://{{ ansible_host }}/phpmyadmin/
-          SSH: ssh -i ~/.ssh/cloud1/id_rsa_cloud1 ubuntu@{{ ansible_host }}
+          WordPress: https://{{ ec2_public_ip }}
+          phpMyAdmin: https://{{ ec2_public_ip }}/phpmyadmin/
+          SSM接続: aws ssm start-session --target {{ inventory_hostname }}
           ========================================

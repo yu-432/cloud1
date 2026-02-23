@@ -15,9 +15,3 @@ variable "ssh_public_key_path" {
   type        = string
   default     = "~/.ssh/cloud1/id_rsa_cloud1.pub"
 }
-
-variable "allowed_ssh_cidr" {
-  description = "SSH接続を許可するIPアドレス範囲"
-  type        = string
-  default     = "0.0.0.0/0"  # 本来は自分のIPに限定すべき
-}

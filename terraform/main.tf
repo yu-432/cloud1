@@ -14,6 +14,7 @@ provider "aws" {
 # -----------------------------------------------
 # SSH鍵ペア
 # ローカルで作った公開鍵をAWSに登録する
+# SSMトンネル経由のSSH認証に使用
 # -----------------------------------------------
 resource "aws_key_pair" "cloud1" {
   key_name   = "cloud1-key"
@@ -21,21 +22,48 @@ resource "aws_key_pair" "cloud1" {
 }
 
 # -----------------------------------------------
+# IAMロール・インスタンスプロファイル（SSM用）
+# EC2が SSM Agent → AWS API と通信するために必要
+# -----------------------------------------------
+resource "aws_iam_role" "cloud1_ssm" {
+  name = "cloud1-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "cloud1-ssm-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "cloud1_ssm" {
+  role       = aws_iam_role.cloud1_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "cloud1_ssm" {
+  name = "cloud1-ssm-profile"
+  role = aws_iam_role.cloud1_ssm.name
+}
+
+# -----------------------------------------------
 # セキュリティグループ（ファイアウォール）
 # どのポートへのアクセスを許可するかを定義
+# SSH (22) は SSMトンネル経由のため不要 → インバウンドなし
 # -----------------------------------------------
 resource "aws_security_group" "cloud1_sg" {
   name        = "cloud1-sg"
   description = "Security group for Cloud-1 project"
-
-  # SSH (22番ポート) — サーバー管理用
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
-  }
 
   # HTTP (80番ポート) — Web通常アクセス（HTTPSへリダイレクト用）
   ingress {
@@ -70,12 +98,12 @@ resource "aws_security_group" "cloud1_sg" {
 }
 
 # -----------------------------------------------
-# Ubuntu 20.04 LTS の AMI（ディスクイメージ）を検索
+# Ubuntu 24.04 LTS の AMI（ディスクイメージ）を検索
 # AWSには多数のAMIがあるので、フィルタで絞り込む
 # -----------------------------------------------
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"]  # Canonical (Ubuntu公式) のAWSアカウントID
+  owners      = ["099720109477"] # Canonical (Ubuntu公式) のAWSアカウントID
 
   filter {
     name   = "name"
@@ -96,6 +124,7 @@ resource "aws_instance" "cloud1" {
   instance_type          = var.instance_type
   key_name               = aws_key_pair.cloud1.key_name
   vpc_security_group_ids = [aws_security_group.cloud1_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.cloud1_ssm.name
 
   # スポットインスタンスとして起動（コスト削減）
   instance_market_options {

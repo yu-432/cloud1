@@ -13,6 +13,7 @@ secrets/
 
 # Ansible
 ansible/vars/secrets.yml
+ansible/inventory.ini
 
 # OS
 .DS_Store
