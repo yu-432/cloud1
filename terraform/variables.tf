@@ -10,3 +10,9 @@ variable "instance_type" {
   default     = "t3.micro"  # 無料枠対象（東京リージョン対応）
 }
 
+variable "instance_count" {
+  description = "作成するEC2インスタンス数"
+  type        = number
+  default     = 1
+}
+
