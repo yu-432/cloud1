@@ -146,6 +146,7 @@ data "aws_ami" "ubuntu" {
 # EC2インスタンス（仮想マシン本体）
 # -----------------------------------------------
 resource "aws_instance" "cloud1" {
+  count                  = var.instance_count
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
 
@@ -167,6 +168,6 @@ resource "aws_instance" "cloud1" {
   }
 
   tags = {
-    Name = "cloud1-inception"
+    Name = "cloud1-inception-${count.index}"
   }
 }
