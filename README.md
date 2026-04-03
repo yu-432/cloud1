@@ -1,6 +1,6 @@
 # Cloud-1
 
-42Tokyo の課題。AWS EC2 上に WordPress + phpMyAdmin + MariaDB を Docker コンテナとして自動デプロイする。
+AWS EC2 上に WordPress + phpMyAdmin + MariaDB を Docker コンテナとして自動デプロイする。
 
 インフラ構築は **Terraform**、サーバー構成は **Ansible** で完全自動化。SSHを使わず **AWS SSM** 経由で接続する。
 
