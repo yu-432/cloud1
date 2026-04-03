@@ -22,5 +22,4 @@ ansible/inventory.ini
 .vscode/
 *.swp
 
-*.md
 .claude
