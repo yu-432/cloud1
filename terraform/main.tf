@@ -83,15 +83,6 @@ resource "aws_security_group" "cloud1_sg" {
   name        = "cloud1-sg"
   description = "Security group for Cloud-1 project"
 
-  # HTTP
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # HTTPS
   ingress {
     description = "HTTPS"

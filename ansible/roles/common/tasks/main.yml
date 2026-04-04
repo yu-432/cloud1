@@ -9,6 +9,7 @@
 - name: 必要なパッケージをインストール
   ansible.builtin.apt:
     name:
+      - acl
       - apt-transport-https
       - ca-certificates
       - curl
