@@ -1,16 +1,13 @@
 ---
-# ====================================================
 # common ロール: Docker / Docker Compose / Git のインストール
-# subjectの前提: Ubuntu 24.04, SSH稼働, Python インストール済み
-# ====================================================
 
 - name: パッケージリストを更新
-  apt:
+  ansible.builtin.apt:
     update_cache: yes
-    cache_valid_time: 3600 # 1時間以内なら再取得しない
+    cache_valid_time: 3600
 
 - name: 必要なパッケージをインストール
-  apt:
+  ansible.builtin.apt:
     name:
       - apt-transport-https
       - ca-certificates
@@ -22,9 +19,7 @@
       - python3-pip
     state: present
 
-# --- Docker のインストール ---
-# Docker公式リポジトリを追加してインストールする
-
+# Docker のインストール
 - name: Docker GPGキーを追加
   ansible.builtin.apt_key:
     url: https://download.docker.com/linux/ubuntu/gpg
@@ -36,7 +31,7 @@
     state: present
 
 - name: Docker をインストール
-  apt:
+  ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
@@ -45,11 +40,10 @@
     update_cache: yes
 
 - name: Docker Compose V2 プラグインをインストール
-  apt:
+  ansible.builtin.apt:
     name: docker-compose-plugin
     state: present
 
-# docker-compose コマンド (V1互換) のシンボリックリンクを作成
 # Inception の Makefile が "docker-compose" コマンドを使うため
 - name: docker-compose 互換リンクを作成
   ansible.builtin.file:
@@ -66,12 +60,10 @@
 - name: Docker サービスを有効化・起動
   ansible.builtin.systemd:
     name: docker
-    enabled: yes # OS起動時に自動起動 → subjectの「再起動時に自動復旧」要件
+    enabled: yes
     state: started
 
-# --- データ永続化用ディレクトリの作成 ---
 # Inception の docker-compose.yml が bind mount するパス
-
 - name: データ永続化ディレクトリを作成
   ansible.builtin.file:
     path: "{{ item }}"

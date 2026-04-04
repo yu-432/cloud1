@@ -1,9 +1,8 @@
 # docker-compose.override.yml
-# 元の docker-compose.yml を変更せずに、差分だけ適用する仕組み
-# Docker Compose は同じディレクトリの override ファイルを自動的にマージする
+# 元の docker-compose.yml の差分を適用する
 
 services:
-  # --- phpMyAdmin の追加（subject要件） ---
+  # phpMyAdmin の追加
   phpmyadmin:
     image: phpmyadmin:5
     container_name: inception_phpmyadmin
@@ -16,7 +15,6 @@ services:
         condition: service_healthy
     networks:
       - inception_network
-    # ポートは公開せず、Nginx経由（/phpmyadmin/）でアクセス
 
 # ボリュームのパスをクラウドVM用に上書き
 volumes:

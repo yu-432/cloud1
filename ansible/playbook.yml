@@ -1,19 +1,17 @@
 ---
-# ====================================================
 # Cloud-1 メインPlaybook
-# このファイル1つで全デプロイが完了する
 # 実行: ansible-playbook playbook.yml
-# ====================================================
 
 - name: Cloud-1 Inception デプロイ
-  hosts: cloud1 # inventory.ini の [cloud1] グループに対して実行
-  become: yes # sudo権限で実行
+  hosts: cloud1
+  become: yes
+
   vars_files:
-    - vars/secrets.yml # 秘密情報を読み込み
+    - vars/secrets.yml
 
   roles:
-    - common # Step 1: Docker/Git等のインストール
-    - inception # Step 2: Inceptionのデプロイ
+    - common
+    - inception
 
   post_tasks:
     - name: デプロイ完了メッセージ
